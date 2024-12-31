@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'models/cart.dart';
 import 'models/product.dart';
 import 'screens/cart_screen.dart';
 import 'screens/product_details.dart';
+import 'screens/profile_screen.dart';
+import 'screens/auth/login_screen.dart';
+import 'services/auth_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => Cart(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => Cart()),
+        Provider(create: (_) => AuthService()),
+      ],
       child: const MainApp(),
     ),
   );
@@ -50,7 +60,20 @@ class MainApp extends StatelessWidget {
           color: Colors.white,
         ),
       ),
-      home: const HomePage(),
+      home: StreamBuilder(
+        stream: context.read<AuthService>().authStateChanges,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+          
+          return snapshot.hasData ? const HomePage() : const LoginScreen();
+        },
+      ),
     );
   }
 }
@@ -106,6 +129,17 @@ class HomePage extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
+                ),
+              );
+            },
           ),
           const SizedBox(width: 8),
         ],
