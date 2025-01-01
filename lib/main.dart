@@ -93,7 +93,7 @@ class _HomePageState extends State<HomePage> {
     try {
       final futures = await Future.wait([
         _apiService.getProducts(
-          category: selectedCategory,
+          category: selectedCategory?.toString(),
         ),
         _apiService.getCategories(),
       ]);

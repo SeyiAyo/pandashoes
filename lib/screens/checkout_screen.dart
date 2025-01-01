@@ -58,10 +58,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             ...cart.items.entries.map((entry) {
                               final item = entry.value;
                               return ListTile(
+                                leading: Image.network(
+                                  item.product.imageUrl,
+                                  width: 50,
+                                  height: 50,
+                                  fit: BoxFit.cover,
+                                ),
                                 title: Text(item.product.name),
-                                subtitle: Text('Size: ${item.size}'),
+                                subtitle: Text('Color: ${item.color}'),
                                 trailing: Text(
-                                  '\$${(item.product.price * item.quantity).toStringAsFixed(2)}',
+                                  '${item.quantity}x \$${item.product.price.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               );
                             }),

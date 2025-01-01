@@ -38,7 +38,7 @@ class Order {
         return CartItem(
           id: itemMap['id'] as String,
           product: Product.fromMap(itemMap['product'] as Map<String, dynamic>),
-          size: itemMap['size'] as String,
+          color: itemMap['color'] as String,
           quantity: itemMap['quantity'] as int,
         );
       }).toList(),

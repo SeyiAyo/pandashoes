@@ -15,6 +15,7 @@ class ProductDetailsScreen extends StatefulWidget {
 
 class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   String? selectedSize;
+  String? selectedColor;
 
   @override
   Widget build(BuildContext context) {
@@ -152,37 +153,27 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: widget.product.colors
-                        .map(
-                          (color) => Chip(
+                  SizedBox(
+                    height: 50,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: widget.product.colors.length,
+                      itemBuilder: (context, index) {
+                        final color = widget.product.colors[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
                             label: Text(color),
+                            selected: selectedColor == color,
+                            onSelected: (selected) {
+                              setState(() {
+                                selectedColor = selected ? color : null;
+                              });
+                            },
                           ),
-                        )
-                        .toList(),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Select Size',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: widget.product.sizes.map((size) {
-                      return ChoiceChip(
-                        label: Text(size),
-                        selected: selectedSize == size,
-                        onSelected: (selected) {
-                          setState(() {
-                            selectedSize = selected ? size : null;
-                          });
-                        },
-                      );
-                    }).toList(),
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -194,12 +185,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: ElevatedButton(
-            onPressed: selectedSize == null
+            onPressed: selectedColor == null
                 ? null
                 : () {
                     context.read<Cart>().addItem(
                           widget.product,
-                          selectedSize!,
+                          selectedColor!,
                         );
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(

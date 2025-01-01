@@ -4,13 +4,13 @@ import 'product.dart';
 class CartItem {
   final String id;
   final Product product;
-  final String size;
+  final String color;
   final int quantity;
 
   CartItem({
     required this.id,
     required this.product,
-    required this.size,
+    required this.color,
     required this.quantity,
   });
 
@@ -20,7 +20,7 @@ class CartItem {
     return {
       'id': id,
       'product': product.toMap(),
-      'size': size,
+      'color': color,
       'quantity': quantity,
     };
   }
@@ -41,15 +41,16 @@ class Cart with ChangeNotifier {
     return total;
   }
 
-  void addItem(Product product, String size) {
-    final itemId = '${product.id}_$size';
+  void addItem(Product product, String color) {
+    final itemId = '${product.id}_$color';
+    
     if (_items.containsKey(itemId)) {
       _items.update(
         itemId,
         (existingCartItem) => CartItem(
           id: existingCartItem.id,
           product: existingCartItem.product,
-          size: existingCartItem.size,
+          color: existingCartItem.color,
           quantity: existingCartItem.quantity + 1,
         ),
       );
@@ -59,7 +60,7 @@ class Cart with ChangeNotifier {
         () => CartItem(
           id: itemId,
           product: product,
-          size: size,
+          color: color,
           quantity: 1,
         ),
       );
@@ -67,8 +68,8 @@ class Cart with ChangeNotifier {
     notifyListeners();
   }
 
-  void decrementItem(Product product, String size) {
-    final itemId = '${product.id}_$size';
+  void decrementItem(Product product, String color) {
+    final itemId = '${product.id}_$color';
     if (_items.containsKey(itemId)) {
       if (_items[itemId]!.quantity > 1) {
         _items.update(
@@ -76,7 +77,7 @@ class Cart with ChangeNotifier {
           (existingCartItem) => CartItem(
             id: existingCartItem.id,
             product: existingCartItem.product,
-            size: existingCartItem.size,
+            color: existingCartItem.color,
             quantity: existingCartItem.quantity - 1,
           ),
         );

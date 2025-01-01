@@ -1,12 +1,8 @@
 import 'dart:developer' as developer;
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 class DebugUtils {
-  static bool get isDebugMode {
-    bool inDebugMode = false;
-    assert(inDebugMode = true);
-    return inDebugMode;
-  }
+  static bool get isDebugMode => true;
 
   static void printInfo(String message) {
     if (isDebugMode) {
@@ -24,12 +20,12 @@ class DebugUtils {
         '⚠️ WARNING: $message',
         name: 'PandaShoes',
         time: DateTime.now(),
-        level: 900, // Warning
+        level: 900,
       );
     }
   }
 
-  static void printError(String message, {dynamic error, StackTrace? stackTrace}) {
+  static void printError(String message, {Object? error, StackTrace? stackTrace}) {
     if (isDebugMode) {
       developer.log(
         '🔴 ERROR: $message',
@@ -37,51 +33,36 @@ class DebugUtils {
         time: DateTime.now(),
         error: error,
         stackTrace: stackTrace,
-        level: 1000, // Error
+        level: 1000,
       );
     }
   }
 
-  static void printApi(String endpoint, {String? method, dynamic data, dynamic response}) {
+  static void printApi(
+    String url, {
+    String method = 'GET',
+    Object? data,
+    String? response,
+  }) {
     if (isDebugMode) {
       final buffer = StringBuffer();
-      buffer.writeln('📡 API Call:');
-      buffer.writeln('Endpoint: $endpoint');
-      if (method != null) buffer.writeln('Method: $method');
-      if (data != null) buffer.writeln('Data: $data');
-      if (response != null) buffer.writeln('Response: $response');
+      buffer.writeln('🌐 API Call:');
+      buffer.writeln('URL: $url');
+      buffer.writeln('Method: $method');
+
+      if (data != null) {
+        buffer.writeln('Data: $data');
+      }
+
+      if (response != null) {
+        buffer.writeln('Response: $response');
+      }
 
       developer.log(
         buffer.toString(),
-        name: 'PandaShoes-API',
+        name: 'PandaShoes',
         time: DateTime.now(),
       );
-    }
-  }
-
-  static void printState(String widget, String action, {dynamic data}) {
-    if (isDebugMode) {
-      final buffer = StringBuffer();
-      buffer.writeln('🔄 State Change:');
-      buffer.writeln('Widget: $widget');
-      buffer.writeln('Action: $action');
-      if (data != null) buffer.writeln('Data: $data');
-
-      developer.log(
-        buffer.toString(),
-        name: 'PandaShoes-State',
-        time: DateTime.now(),
-      );
-    }
-  }
-
-  static void startPerformanceTrace(String operation) {
-    if (isDebugMode) {
-      final timeline = developer.Timeline.startSync(
-        operation,
-        arguments: {'timestamp': DateTime.now().toIso8601String()},
-      );
-      timeline.finish();
     }
   }
 
@@ -95,24 +76,23 @@ class DebugUtils {
     try {
       final result = await operation();
       stopwatch.stop();
-      printInfo('$operationName completed in ${stopwatch.elapsedMilliseconds}ms');
+      
+      developer.log(
+        '⏱️ Operation "$operationName" completed in ${stopwatch.elapsedMilliseconds}ms',
+        name: 'PandaShoes',
+        time: DateTime.now(),
+      );
+      
       return result;
-    } catch (e, stackTrace) {
+    } catch (e) {
       stopwatch.stop();
-      printError(
-        '$operationName failed after ${stopwatch.elapsedMilliseconds}ms',
+      developer.log(
+        '⏱️ Operation "$operationName" failed after ${stopwatch.elapsedMilliseconds}ms',
+        name: 'PandaShoes',
+        time: DateTime.now(),
         error: e,
-        stackTrace: stackTrace,
       );
       rethrow;
-    }
-  }
-
-  static void logMemoryUsage() {
-    if (isDebugMode) {
-      final memory = ProcessInfo.currentRss;
-      final memoryMB = memory / (1024 * 1024);
-      printInfo('Current Memory Usage: ${memoryMB.toStringAsFixed(2)} MB');
     }
   }
 }
