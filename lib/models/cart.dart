@@ -2,53 +2,73 @@ import 'package:flutter/foundation.dart';
 import 'product.dart';
 
 class CartItem {
+  final String id;
   final Product product;
   final String size;
-  int quantity;
+  final int quantity;
 
   CartItem({
+    required this.id,
     required this.product,
     required this.size,
-    this.quantity = 1,
+    required this.quantity,
   });
+
+  double get totalPrice => product.price * quantity;
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'product': product.toMap(),
+      'size': size,
+      'quantity': quantity,
+    };
+  }
 }
 
-class Cart extends ChangeNotifier {
-  final List<CartItem> _items = [];
+class Cart with ChangeNotifier {
+  final Map<String, CartItem> _items = {};
 
-  List<CartItem> get items => List.unmodifiable(_items);
+  Map<String, CartItem> get items => {..._items};
 
-  double get total => _items.fold(
-        0,
-        (sum, item) => sum + (item.product.price * item.quantity),
-      );
+  int get itemCount => _items.length;
+
+  double get totalAmount {
+    var total = 0.0;
+    _items.forEach((key, cartItem) {
+      total += cartItem.totalPrice;
+    });
+    return total;
+  }
 
   void addItem(Product product, String size) {
-    final existingItem = _items.firstWhere(
-      (item) => item.product.id == product.id && item.size == size,
-      orElse: () => CartItem(product: product, size: size, quantity: 0),
-    );
-
-    if (existingItem.quantity == 0) {
-      _items.add(CartItem(product: product, size: size));
+    final itemId = '${product.id}_$size';
+    if (_items.containsKey(itemId)) {
+      _items.update(
+        itemId,
+        (existingCartItem) => CartItem(
+          id: existingCartItem.id,
+          product: existingCartItem.product,
+          size: existingCartItem.size,
+          quantity: existingCartItem.quantity + 1,
+        ),
+      );
     } else {
-      existingItem.quantity++;
+      _items.putIfAbsent(
+        itemId,
+        () => CartItem(
+          id: itemId,
+          product: product,
+          size: size,
+          quantity: 1,
+        ),
+      );
     }
     notifyListeners();
   }
 
-  void removeItem(Product product, String size) {
-    _items.removeWhere(
-      (item) => item.product.id == product.id && item.size == size,
-    );
-    notifyListeners();
-  }
-
-  void updateQuantity(Product product, String size, int quantity) {
-    final item = _items.firstWhere(
-      (item) => item.product.id == product.id && item.size == size,
-    );
-    item.quantity = quantity;
+  void removeItem(String productId) {
+    _items.remove(productId);
     notifyListeners();
   }
 

@@ -42,24 +42,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _authService.currentUser!.uid,
       );
       if (user != null) {
-        setState(() {
-          _user = user;
-          _nameController.text = user.name;
-          _phoneController.text = user.phoneNumber ?? '';
-          _addressController.text = user.address ?? '';
-        });
+        if (mounted) {
+          setState(() {
+            _user = user;
+            _nameController.text = user.name;
+            _phoneController.text = user.phoneNumber ?? '';
+            _addressController.text = user.address ?? '';
+          });
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -192,7 +198,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 13, red: 0, green: 0, blue: 0),
                     blurRadius: 10,
                     offset: const Offset(0, 5),
                   ),
