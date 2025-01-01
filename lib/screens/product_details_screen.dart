@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/cart.dart';
 import '../models/product.dart';
+import '../models/favorites.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final Product product;
@@ -21,6 +22,17 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       appBar: AppBar(
         title: Text(widget.product.name),
         actions: [
+          Consumer<Favorites>(
+            builder: (context, favorites, _) => IconButton(
+              icon: Icon(
+                favorites.isFavorite(widget.product.id)
+                    ? Icons.favorite
+                    : Icons.favorite_border,
+                color: Colors.red,
+              ),
+              onPressed: () => favorites.toggleFavorite(widget.product.id),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.shopping_cart),
             onPressed: () => Navigator.pushNamed(context, '/cart'),
@@ -34,9 +46,29 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             SizedBox(
               height: 300,
               width: double.infinity,
-              child: Image.asset(
+              child: Image.network(
                 widget.product.imageUrl,
                 fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return const Center(
+                    child: Icon(
+                      Icons.error_outline,
+                      size: 40,
+                      color: Colors.red,
+                    ),
+                  );
+                },
               ),
             ),
             Padding(
@@ -44,31 +76,91 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    widget.product.name,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '\$${widget.product.price.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '\$${widget.product.price.toStringAsFixed(2)}',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: Colors.green,
-                          fontWeight: FontWeight.bold,
                         ),
+                      ),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.star,
+                            color: Colors.amber[700],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            widget.product.rating.toString(),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            ' (${widget.product.reviewCount} reviews)',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Description',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    'Brand: ${widget.product.brand}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Category: ${widget.product.category}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Description:',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     widget.product.description,
-                    style: Theme.of(context).textTheme.bodyLarge,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Available Colors:',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: widget.product.colors
+                        .map(
+                          (color) => Chip(
+                            label: Text(color),
+                          ),
+                        )
+                        .toList(),
                   ),
                   const SizedBox(height: 24),
                   Text(

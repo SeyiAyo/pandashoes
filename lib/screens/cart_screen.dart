@@ -50,9 +50,15 @@ class CartScreen extends StatelessWidget {
                     child: ListTile(
                       leading: CircleAvatar(
                         backgroundColor: Colors.transparent,
-                        child: Image.asset(
+                        child: Image.network(
                           cartItem.product.imageUrl,
                           fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.error_outline,
+                              color: Colors.red,
+                            );
+                          },
                         ),
                       ),
                       title: Text(cartItem.product.name),
@@ -70,14 +76,12 @@ class CartScreen extends StatelessWidget {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.remove),
-                            onPressed: cartItem.quantity > 1
-                                ? () {
-                                    cart.addItem(
-                                      cartItem.product,
-                                      cartItem.size,
-                                    );
-                                  }
-                                : null,
+                            onPressed: () {
+                              cart.decrementItem(
+                                cartItem.product,
+                                cartItem.size,
+                              );
+                            },
                           ),
                           Text('${cartItem.quantity}'),
                           IconButton(
