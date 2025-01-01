@@ -4,11 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'models/cart.dart';
 import 'models/favorites.dart';
 import 'models/product.dart';
+import 'services/api_service.dart';
 import 'screens/cart_screen.dart';
 import 'screens/favorites_screen.dart';
 import 'screens/product_details_screen.dart';
 import 'screens/checkout_screen.dart';
 import 'screens/order_confirmation_screen.dart';
+import 'screens/search_screen.dart';
 
 void main() {
   runApp(
@@ -68,25 +70,54 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final ApiService _apiService = ApiService();
   String? selectedCategory;
   String? selectedBrand;
+  List<Product> _products = [];
+  List<Map<String, dynamic>> _categories = [];
+  bool _isLoading = false;
+  String? _error;
 
-  List<String> get categories => dummyProducts
-      .map((p) => p.category)
-      .toSet()
-      .toList()
-    ..sort();
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
 
-  List<String> get brands => dummyProducts
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final futures = await Future.wait([
+        _apiService.getProducts(
+          category: selectedCategory,
+        ),
+        _apiService.getCategories(),
+      ]);
+
+      setState(() {
+        _products = futures[0] as List<Product>;
+        _categories = futures[1] as List<Map<String, dynamic>>;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  List<String> get brands => _products
       .map((p) => p.brand)
       .toSet()
       .toList()
     ..sort();
 
-  List<Product> get filteredProducts => dummyProducts.where((product) {
-        if (selectedCategory != null && product.category != selectedCategory) {
-          return false;
-        }
+  List<Product> get filteredProducts => _products.where((product) {
         if (selectedBrand != null && product.brand != selectedBrand) {
           return false;
         }
@@ -100,6 +131,15 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Panda Shoes'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const SearchScreen(),
+              ),
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.favorite),
             onPressed: () => Navigator.pushNamed(context, '/favorites'),
           ),
@@ -109,88 +149,118 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                FilterChip(
-                  label: const Text('All Categories'),
-                  selected: selectedCategory == null,
-                  onSelected: (selected) {
-                    setState(() {
-                      selectedCategory = null;
-                    });
-                  },
-                ),
-                const SizedBox(width: 8),
-                ...categories.map(
-                  (category) => Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(category),
-                      selected: selectedCategory == category,
-                      onSelected: (selected) {
-                        setState(() {
-                          selectedCategory = selected ? category : null;
-                        });
-                      },
-                    ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Error: $_error',
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadData,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadData,
+                  child: Column(
+                    children: [
+                      SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            FilterChip(
+                              label: const Text('All Categories'),
+                              selected: selectedCategory == null,
+                              onSelected: (selected) {
+                                setState(() {
+                                  selectedCategory = null;
+                                });
+                                _loadData();
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            ..._categories.map(
+                              (category) => Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: FilterChip(
+                                  label: Text(category['name']),
+                                  selected: selectedCategory ==
+                                      category['id'].toString(),
+                                  onSelected: (selected) {
+                                    setState(() {
+                                      selectedCategory = selected
+                                          ? category['id'].toString()
+                                          : null;
+                                    });
+                                    _loadData();
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (brands.isNotEmpty)
+                        SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              FilterChip(
+                                label: const Text('All Brands'),
+                                selected: selectedBrand == null,
+                                onSelected: (selected) {
+                                  setState(() {
+                                    selectedBrand = null;
+                                  });
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              ...brands.map(
+                                (brand) => Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: FilterChip(
+                                    label: Text(brand),
+                                    selected: selectedBrand == brand,
+                                    onSelected: (selected) {
+                                      setState(() {
+                                        selectedBrand = selected ? brand : null;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      Expanded(
+                        child: GridView.builder(
+                          padding: const EdgeInsets.all(16),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.7,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                          ),
+                          itemCount: filteredProducts.length,
+                          itemBuilder: (context, index) =>
+                              _buildProductCard(context, filteredProducts[index]),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                FilterChip(
-                  label: const Text('All Brands'),
-                  selected: selectedBrand == null,
-                  onSelected: (selected) {
-                    setState(() {
-                      selectedBrand = null;
-                    });
-                  },
-                ),
-                const SizedBox(width: 8),
-                ...brands.map(
-                  (brand) => Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(brand),
-                      selected: selectedBrand == brand,
-                      onSelected: (selected) {
-                        setState(() {
-                          selectedBrand = selected ? brand : null;
-                        });
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.7,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: filteredProducts.length,
-              itemBuilder: (context, index) =>
-                  _buildProductCard(context, filteredProducts[index]),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
