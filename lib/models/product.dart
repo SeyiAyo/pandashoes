@@ -49,7 +49,7 @@ class Product {
       name: map['name'] ?? '',
       description: map['description'] ?? '',
       price: (map['price'] is num) ? (map['price'] as num).toDouble() : 0.0,
-      imageUrl: map['imageUrl'] ?? '',
+      imageUrl: map['imageUrl'] ?? map['image'] ?? '',
       sizes: List<String>.from(map['sizes'] ?? []),
       category: map['category'] ?? '',
       brand: map['brand'] ?? '',

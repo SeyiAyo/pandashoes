@@ -73,7 +73,10 @@ class ApiService {
 
           final products = productList.map((json) {
             try {
-              return Product.fromMap(json as Map<String, dynamic>);
+              if (json is! Map<String, dynamic>) {
+                throw FormatException('Product data is not a Map: $json');
+              }
+              return Product.fromMap(json);
             } catch (e, stackTrace) {
               DebugUtils.printError(
                 'Error parsing product data',
@@ -94,34 +97,18 @@ class ApiService {
             stackTrace: stackTrace,
           );
           DebugUtils.printInfo('Response body: ${response.body}');
-          throw Exception('Failed to parse products: $e');
-        }
-      } else if (response.statusCode == 400) {
-        try {
-          final errorData = json.decode(response.body);
-          final errorMessage = errorData['error']?['message'] ?? 'Bad request';
-          DebugUtils.printError('API Error: $errorMessage');
-          throw Exception(errorMessage);
-        } catch (e) {
-          DebugUtils.printError('Error parsing error response: ${response.body}');
-          throw Exception('Invalid request: ${response.body}');
+          rethrow;
         }
       } else {
-        final error = 'Failed to load products: ${response.statusCode} - ${response.body}';
-        DebugUtils.printError(error);
-        throw Exception(error);
+        throw HttpException('Failed to fetch products: ${response.statusCode}\n${response.body}');
       }
-    } on SocketException catch (e) {
-      const error = 'Failed to connect to server. Please check your internet connection.';
-      DebugUtils.printError(error, error: e);
-      throw Exception(error);
     } catch (e, stackTrace) {
       DebugUtils.printError(
-        'Error fetching products',
+        'Network error while fetching products',
         error: e,
         stackTrace: stackTrace,
       );
-      throw Exception('Failed to load products: $e');
+      rethrow;
     }
   }
 

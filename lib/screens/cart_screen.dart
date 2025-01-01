@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/cart.dart';
+import '../utils/image_utils.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -48,17 +49,13 @@ class CartScreen extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(8),
                     child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.transparent,
-                        child: Image.network(
+                      leading: SizedBox(
+                        width: 80,
+                        height: 80,
+                        child: ImageUtils.buildProductImage(
                           cartItem.product.imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.error_outline,
-                              color: Colors.red,
-                            );
-                          },
+                          width: 80,
+                          height: 80,
                         ),
                       ),
                       title: Text(

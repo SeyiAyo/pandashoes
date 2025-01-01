@@ -11,6 +11,7 @@ import 'screens/product_details_screen.dart';
 import 'screens/checkout_screen.dart';
 import 'screens/order_confirmation_screen.dart';
 import 'screens/search_screen.dart';
+import 'utils/image_utils.dart';
 
 void main() {
   runApp(
@@ -103,6 +104,13 @@ class _HomePageState extends State<HomePage> {
         _categories = futures[1] as List<Map<String, dynamic>>;
         _isLoading = false;
       });
+
+      if (_products.isNotEmpty) {
+        ImageUtils.preloadImages(
+          _products.map((p) => p.imageUrl).where((url) => url.isNotEmpty).toList(),
+          context,
+        );
+      }
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -267,106 +275,38 @@ class _HomePageState extends State<HomePage> {
   Widget _buildProductCard(BuildContext context, Product product) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProductDetailsScreen(product: product),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: ImageUtils.buildProductImage(
+              product.imageUrl,
+              width: double.infinity,
             ),
-          );
-        },
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Stack(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(12)),
-                      image: DecorationImage(
-                        image: NetworkImage(product.imageUrl),
-                        fit: BoxFit.cover,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  style: Theme.of(context).textTheme.titleMedium,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '\$${product.price.toStringAsFixed(2)}',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: Theme.of(context).primaryColor,
+                        fontWeight: FontWeight.bold,
                       ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Consumer<Favorites>(
-                      builder: (context, favorites, _) => IconButton(
-                        icon: Icon(
-                          favorites.isFavorite(product.id)
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          color: Colors.red,
-                        ),
-                        onPressed: () => favorites.toggleFavorite(product.id),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.star,
-                        size: 16,
-                        color: Colors.amber[700],
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        product.rating.toString(),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '(${product.reviewCount})',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '\$${product.price.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.green,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

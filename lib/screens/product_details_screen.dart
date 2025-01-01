@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/cart.dart';
 import '../models/product.dart';
 import '../models/favorites.dart';
+import '../utils/image_utils.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final Product product;
@@ -47,29 +48,10 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             SizedBox(
               height: 300,
               width: double.infinity,
-              child: Image.network(
+              child: ImageUtils.buildProductImage(
                 widget.product.imageUrl,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Center(
-                    child: CircularProgressIndicator(
-                      value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded /
-                              loadingProgress.expectedTotalBytes!
-                          : null,
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return const Center(
-                    child: Icon(
-                      Icons.error_outline,
-                      size: 40,
-                      color: Colors.red,
-                    ),
-                  );
-                },
+                width: double.infinity,
+                height: 300,
               ),
             ),
             Padding(
