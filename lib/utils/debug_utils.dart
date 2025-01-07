@@ -3,66 +3,51 @@ import 'dart:developer' as developer;
 class DebugUtils {
   static bool get isDebugMode => true;
 
-  static void printInfo(String message) {
-    if (isDebugMode) {
-      developer.log(
-        '💡 INFO: $message',
-        name: 'PandaShoes',
-        time: DateTime.now(),
-      );
+  static void printApi(
+    String url, {
+    required String method,
+    Map<String, dynamic>? data,
+    String? response,
+    int? statusCode,
+  }) {
+    if (!isDebugMode) return;
+
+    final buffer = StringBuffer()
+      ..writeln('🌐 API Call:')
+      ..writeln('URL: $url')
+      ..writeln('Method: $method');
+
+    if (data != null) {
+      buffer.writeln('Data: $data');
     }
+
+    if (statusCode != null) {
+      buffer.writeln('Status Code: $statusCode');
+    }
+
+    if (response != null) {
+      if (response.length > 1000) {
+        buffer.writeln('Response: ${response.substring(0, 1000)}... (truncated)');
+      } else {
+        buffer.writeln('Response: $response');
+      }
+    }
+
+    developer.log(buffer.toString());
   }
 
-  static void printWarning(String message) {
-    if (isDebugMode) {
-      developer.log(
-        '⚠️ WARNING: $message',
-        name: 'PandaShoes',
-        time: DateTime.now(),
-        level: 900,
-      );
-    }
+  static void printInfo(String message) {
+    if (!isDebugMode) return;
+    developer.log('ℹ️ $message');
   }
 
   static void printError(String message, {Object? error, StackTrace? stackTrace}) {
-    if (isDebugMode) {
-      developer.log(
-        '🔴 ERROR: $message',
-        name: 'PandaShoes',
-        time: DateTime.now(),
-        error: error,
-        stackTrace: stackTrace,
-        level: 1000,
-      );
-    }
-  }
-
-  static void printApi(
-    String url, {
-    String method = 'GET',
-    Object? data,
-    String? response,
-  }) {
-    if (isDebugMode) {
-      final buffer = StringBuffer();
-      buffer.writeln('🌐 API Call:');
-      buffer.writeln('URL: $url');
-      buffer.writeln('Method: $method');
-
-      if (data != null) {
-        buffer.writeln('Data: $data');
-      }
-
-      if (response != null) {
-        buffer.writeln('Response: $response');
-      }
-
-      developer.log(
-        buffer.toString(),
-        name: 'PandaShoes',
-        time: DateTime.now(),
-      );
-    }
+    if (!isDebugMode) return;
+    developer.log(
+      '❌ $message',
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 
   static Future<T> measureAsyncOperation<T>(
@@ -75,20 +60,12 @@ class DebugUtils {
     try {
       final result = await operation();
       stopwatch.stop();
-      
-      developer.log(
-        '⏱️ Operation "$operationName" completed in ${stopwatch.elapsedMilliseconds}ms',
-        name: 'PandaShoes',
-        time: DateTime.now(),
-      );
-      
+      printInfo('$operationName completed in ${stopwatch.elapsedMilliseconds}ms');
       return result;
     } catch (e) {
       stopwatch.stop();
-      developer.log(
-        '⏱️ Operation "$operationName" failed after ${stopwatch.elapsedMilliseconds}ms',
-        name: 'PandaShoes',
-        time: DateTime.now(),
+      printError(
+        '$operationName failed after ${stopwatch.elapsedMilliseconds}ms',
         error: e,
       );
       rethrow;

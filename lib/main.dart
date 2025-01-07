@@ -79,6 +79,12 @@ class _HomePageState extends State<HomePage> {
   String? _error;
 
   @override
+  void dispose() {
+    _apiService.dispose();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
     _loadData();
