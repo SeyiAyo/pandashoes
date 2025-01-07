@@ -3,10 +3,29 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/product.dart';
 import '../utils/debug_utils.dart';
-import '../config/api_config.dart';
 
 class ApiService {
-  final http.Client _client = http.Client();
+  static String get baseUrl {
+    const liveUrl = 'https://shoestore-rkkw8bmc6-oluwaseyi-ayoolas-projects.vercel.app/api';
+    const useLocalBackend = false;  // Set to false to use live backend
+
+    if (useLocalBackend) {
+      if (Platform.isAndroid) {
+        return 'http://10.0.2.2:8000/api';  // Android emulator
+      } else if (Platform.isIOS) {
+        return 'http://127.0.0.1:8000/api';  // iOS simulator
+      } else {
+        return 'http://localhost:8000/api';  // Web
+      }
+    } else {
+      return liveUrl;
+    }
+  }
+
+  Map<String, String> get _headers => {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
 
   Future<List<Product>> getProducts({
     String? category,
@@ -22,7 +41,7 @@ class ApiService {
     if (minPrice != null) queryParams['min_price'] = minPrice.toString();
     if (maxPrice != null) queryParams['max_price'] = maxPrice.toString();
 
-    final uri = Uri.parse(ApiConfig.productsEndpoint).replace(queryParameters: queryParams);
+    final uri = Uri.parse('$baseUrl/products/').replace(queryParameters: queryParams);
     
     DebugUtils.printApi(
       uri.toString(),
@@ -33,17 +52,13 @@ class ApiService {
     try {
       final response = await DebugUtils.measureAsyncOperation(
         'GET Products',
-        () => _client.get(
-          uri,
-          headers: ApiConfig.headers,
-        ).timeout(ApiConfig.connectionTimeout),
+        () => http.get(uri, headers: _headers),
       );
       
       DebugUtils.printApi(
         uri.toString(),
         method: 'GET',
         response: response.body,
-        statusCode: response.statusCode,
       );
 
       if (response.statusCode == 200) {
@@ -51,102 +66,136 @@ class ApiService {
           final dynamic decodedData = json.decode(response.body);
           List<dynamic> productList;
           
+          // Handle DRF's paginated response format
           if (decodedData is Map<String, dynamic>) {
-            if (decodedData.containsKey('data')) {
-              productList = decodedData['data'] as List<dynamic>;
-            } else if (decodedData.containsKey('results')) {
+            if (decodedData.containsKey('results')) {
+              // Paginated response
               productList = decodedData['results'] as List<dynamic>;
+              
+              final count = decodedData['count'] as int?;
+              if (count != null) {
+                DebugUtils.printInfo('Total products available: $count');
+              }
             } else {
-              productList = [decodedData];  // Single product response
+              // Single object response
+              productList = [decodedData];
             }
           } else if (decodedData is List) {
+            // Direct list response
             productList = decodedData;
           } else {
-            throw FormatException('Unexpected response format: ${response.body}');
+            throw FormatException('Unexpected response format');
           }
 
           final products = productList.map((json) {
-            try {
-              if (json is! Map<String, dynamic>) {
-                throw FormatException('Product data is not a Map: $json');
-              }
-              
-              DebugUtils.printInfo('Parsing product: $json');
-              final product = Product.fromMap(json);
-              DebugUtils.printInfo('Successfully parsed product: ${product.name}');
-              return product;
-            } catch (e, stackTrace) {
-              DebugUtils.printError(
-                'Error parsing product data',
-                error: e,
-                stackTrace: stackTrace,
-              );
-              DebugUtils.printInfo('Problematic product data: $json');
-              rethrow;
+            if (json is! Map<String, dynamic>) {
+              throw FormatException('Product data is not a Map: $json');
             }
+            return Product.fromMap(json);
           }).toList();
 
-          DebugUtils.printInfo('Successfully fetched ${products.length} products');
+          DebugUtils.printInfo('Successfully parsed ${products.length} products');
           return products;
         } catch (e, stackTrace) {
           DebugUtils.printError(
-            'Error parsing response body',
+            'Error parsing response',
             error: e,
             stackTrace: stackTrace,
           );
           DebugUtils.printInfo('Response body: ${response.body}');
           rethrow;
         }
-      } else if (response.statusCode == 0) {
-        throw HttpException('CORS error: Request blocked by browser security policy. Please check CORS configuration on the server.');
       } else {
-        final errorMessage = 'Failed to fetch products: ${response.statusCode}\n${response.body}';
-        DebugUtils.printError(errorMessage);
-        throw HttpException(errorMessage);
+        final error = 'Failed to fetch products: ${response.statusCode} - ${response.body}';
+        DebugUtils.printError(error);
+        throw HttpException(error);
       }
     } on SocketException catch (e) {
-      DebugUtils.printError('Network connection error', error: e);
-      throw HttpException('Unable to connect to the server. Please check your internet connection.');
-    } on HttpException catch (e) {
-      DebugUtils.printError('HTTP error', error: e);
-      rethrow;
-    } on FormatException catch (e) {
-      DebugUtils.printError('Data format error', error: e);
-      throw HttpException('Invalid response format from server');
+      const error = 'Failed to connect to server. Please check your internet connection.';
+      DebugUtils.printError(error, error: e);
+      throw HttpException(error);
     } catch (e, stackTrace) {
       DebugUtils.printError(
-        'Unexpected error while fetching products',
+        'Error fetching products',
         error: e,
         stackTrace: stackTrace,
       );
-      throw HttpException('An unexpected error occurred. Please try again later.');
+      rethrow;
     }
   }
 
   Future<List<Map<String, dynamic>>> getCategories() async {
-    final uri = Uri.parse(ApiConfig.categoriesEndpoint);
+    final uri = Uri.parse('$baseUrl/categories/');
     
+    DebugUtils.printApi(
+      uri.toString(),
+      method: 'GET',
+    );
+
     try {
-      final response = await _client.get(
-        uri,
-        headers: ApiConfig.headers,
-      ).timeout(ApiConfig.connectionTimeout);
+      final response = await DebugUtils.measureAsyncOperation(
+        'GET Categories',
+        () => http.get(uri, headers: _headers),
+      );
+      
+      DebugUtils.printApi(
+        uri.toString(),
+        method: 'GET',
+        response: response.body,
+      );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.cast<Map<String, dynamic>>();
-      } else if (response.statusCode == 0) {
-        throw HttpException('CORS error: Request blocked by browser security policy');
+        try {
+          final dynamic decodedData = json.decode(response.body);
+          List<dynamic> categoryList;
+          
+          // Handle DRF's response format
+          if (decodedData is Map<String, dynamic>) {
+            if (decodedData.containsKey('results')) {
+              categoryList = decodedData['results'] as List<dynamic>;
+            } else {
+              categoryList = [decodedData];
+            }
+          } else if (decodedData is List) {
+            categoryList = decodedData;
+          } else {
+            throw FormatException('Unexpected response format');
+          }
+
+          final categories = categoryList.map((item) {
+            if (item is! Map<String, dynamic>) {
+              throw FormatException('Category data is not a Map: $item');
+            }
+            return item;
+          }).toList();
+
+          DebugUtils.printInfo('Successfully fetched ${categories.length} categories');
+          return categories;
+        } catch (e, stackTrace) {
+          DebugUtils.printError(
+            'Error parsing categories',
+            error: e,
+            stackTrace: stackTrace,
+          );
+          DebugUtils.printInfo('Response body: ${response.body}');
+          rethrow;
+        }
       } else {
-        throw HttpException('Failed to fetch categories: ${response.statusCode}');
+        final error = 'Failed to fetch categories: ${response.statusCode} - ${response.body}';
+        DebugUtils.printError(error);
+        throw HttpException(error);
       }
-    } catch (e) {
-      DebugUtils.printError('Error fetching categories', error: e);
+    } on SocketException catch (e) {
+      const error = 'Failed to connect to server. Please check your internet connection.';
+      DebugUtils.printError(error, error: e);
+      throw HttpException(error);
+    } catch (e, stackTrace) {
+      DebugUtils.printError(
+        'Error fetching categories',
+        error: e,
+        stackTrace: stackTrace,
+      );
       rethrow;
     }
-  }
-
-  void dispose() {
-    _client.close();
   }
 }

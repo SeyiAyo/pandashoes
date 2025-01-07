@@ -4,12 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'models/cart.dart';
 import 'models/favorites.dart';
 import 'models/product.dart';
+import 'services/api_service.dart';
 import 'screens/cart_screen.dart';
-import 'screens/checkout_screen.dart';
 import 'screens/favorites_screen.dart';
+import 'screens/product_details_screen.dart';
+import 'screens/checkout_screen.dart';
 import 'screens/order_confirmation_screen.dart';
 import 'screens/search_screen.dart';
-import 'services/api_service.dart';
 import 'utils/image_utils.dart';
 
 void main() {
@@ -71,18 +72,12 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final ApiService _apiService = ApiService();
-  List<Product> _products = [];
-  List<Map<String, dynamic>> _categories = [];
   String? selectedCategory;
   String? selectedBrand;
+  List<Product> _products = [];
+  List<Map<String, dynamic>> _categories = [];
   bool _isLoading = false;
   String? _error;
-
-  @override
-  void dispose() {
-    _apiService.dispose();
-    super.dispose();
-  }
 
   @override
   void initState() {
@@ -91,8 +86,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadData() async {
-    if (!mounted) return;
-
     setState(() {
       _isLoading = true;
       _error = null;
@@ -106,33 +99,19 @@ class _HomePageState extends State<HomePage> {
         _apiService.getCategories(),
       ]);
 
-      if (!mounted) return;
-
-      final List<Product> newProducts = futures[0] as List<Product>;
-      final List<Map<String, dynamic>> newCategories = futures[1] as List<Map<String, dynamic>>;
-
       setState(() {
-        _products = newProducts;
-        _categories = newCategories;
+        _products = futures[0] as List<Product>;
+        _categories = futures[1] as List<Map<String, dynamic>>;
         _isLoading = false;
       });
 
-      if (!mounted) return;
-      
-      // Preload images after setting state
-      if (newProducts.isNotEmpty) {
-        final validUrls = newProducts
-            .where((p) => p.imageUrl.isNotEmpty)
-            .map((p) => p.imageUrl)
-            .toList();
-            
-        if (validUrls.isNotEmpty) {
-          await ImageUtils.preloadImages(validUrls, context);
-        }
+      if (_products.isNotEmpty) {
+        ImageUtils.preloadImages(
+          _products.map((p) => p.imageUrl).where((url) => url.isNotEmpty).toList(),
+          context,
+        );
       }
     } catch (e) {
-      if (!mounted) return;
-      
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -141,7 +120,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   List<String> get brands => _products
-      .where((p) => p.brand.isNotEmpty)
       .map((p) => p.brand)
       .toSet()
       .toList()
